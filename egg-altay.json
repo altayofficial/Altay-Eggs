@@ -1,0 +1,52 @@
+{
+    "_comment": "Altay egg for Pterodactyl",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": "https://raw.githubusercontent.com/altayofficial/Altay-Eggs/master/egg-altay.json"
+    },
+    "exported_at": "2026-09-20T00:00:00+00:00",
+    "name": "Altay",
+    "author": "semihakin803@gmail.com",
+    "description": "Lightweight, OOP based Minecraft: Bedrock Edition server software written in PHP. Bedrock speaks UDP, so the primary allocation must be a UDP port.",
+    "features": null,
+    "docker_images": {
+        "Debian": "ghcr.io/pterodactyl/yolks:debian"
+    },
+    "file_denylist": [],
+    "startup": "./start.sh",
+    "config": {
+        "files": "{\"server.properties\": {\"parser\": \"properties\", \"find\": {\"server-port\": \"{{server.build.default.port}}\", \"server-ip\": \"0.0.0.0\", \"max-players\": \"{{server.build.env.MAX_PLAYERS}}\"}}}",
+        "startup": "{\"done\": \"Done (\"}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Fetches the server and a PHP build able to run it.\n\napt-get update --quiet\napt-get install -y --no-install-recommends curl ca-certificates tar\n\nmkdir -p /mnt/server\ncd /mnt/server || exit 1\n\nCHANNEL=\"${BUILD_TYPE:-stable}\"\nif [ \"$CHANNEL\" != \"stable\" ] && [ \"$CHANNEL\" != \"nightly\" ]; then\n\techo \"Unknown build type '$CHANNEL', falling back to stable.\"\n\tCHANNEL=\"stable\"\nfi\n\necho \"Installing Altay from the $CHANNEL channel.\"\n\n# -r because the install container runs as root, which the installer otherwise\n# refuses: running a game server as root is a bad idea, but this step only\n# writes files, and the server itself runs unprivileged.\ncurl -sL https://getaltay.org/download | bash -s - -r -v \"$CHANNEL\"\n\nif [ ! -s Altay.phar ]; then\n\techo \"Install failed: Altay.phar was not written.\"\n\texit 1\nfi\n\ncurl -sL -o start.sh https://raw.githubusercontent.com/altayofficial/Altay-Eggs/master/start.sh\nchmod +x start.sh\n\necho \"Installed.\"\n",
+            "container": "debian:bookworm-slim",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Build type",
+            "description": "stable for the newest release, nightly for a build from the current master. Nightly builds carry no release notes and are not meant for a server people play on.",
+            "env_variable": "BUILD_TYPE",
+            "default_value": "stable",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:stable,nightly",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "Written into server.properties on boot.",
+            "env_variable": "MAX_PLAYERS",
+            "default_value": "20",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,1000",
+            "field_type": "text"
+        }
+    ]
+}
